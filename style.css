@@ -119,6 +119,10 @@ body h2 {
         width: 90%;
         padding: 20px;
     }
+    .header-top {
+        width: 90%;
+        padding: 20px;
+    }
 
     .header a {
         width: 100%;
@@ -139,7 +143,9 @@ body h2 {
     .header {
         width: 80%;
     }
-
+    .header-top {
+        width: 80%;
+    }
     #manualLocation input {
         width: 85%;
     }
@@ -148,6 +154,9 @@ body h2 {
 /* 🖥️ Große Bildschirme (ab 1025px) */
 @media screen and (min-width: 1025px) {
     .header {
+        width: 600px;
+    }
+    .header-top {
         width: 600px;
     }
 }
