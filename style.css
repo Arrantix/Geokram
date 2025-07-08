@@ -17,13 +17,14 @@ body h2 {
     color: white;
     text-align: center;
 }
-
+/* Daten zum aktuellen Standort */
 .info {
     color: white;
     text-align: center;
     max-width: 600px;
 }
 
+/* Eingabe für manuellen Standort*/
 #manualLocation {
     display: none;
     color: white;
@@ -54,6 +55,21 @@ body h2 {
     color: black;
 }
 
+.header-top {
+    position: relative;
+    top: 20px;
+    width: 600px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
+    background-image: linear-gradient(to right, rgba(255, 200, 0, 0.4), rgba(255, 100, 0, 0.2));
+    backdrop-filter: blur(3px);
+    text-align: center;
+}
 .header {
     width: 600px;
     padding: 20px;
@@ -61,7 +77,8 @@ body h2 {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border-radius: 40px;
+    border-bottom-left-radius: 40px;
+    border-bottom-right-radius: 40px;
     background-image: linear-gradient(to right, rgba(255, 200, 0, 0.4), rgba(255, 100, 0, 0.2));
     backdrop-filter: blur(3px);
     text-align: center;
