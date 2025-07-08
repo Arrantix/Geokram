@@ -26,6 +26,8 @@
   </div>
 
 <script>
+  let manualLat = null;
+  let manualLon = null;
   // Haversine-Formel zur Entfernung
   function haversine(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -51,88 +53,98 @@
       return Array.from({length: n}, () => Math.random());
     }
   }
+  
+async function findExtremeRandomPoint(event) {
+  event.preventDefault();
+  const infoDiv = document.getElementById('randomPlaceInfo');
+  infoDiv.innerHTML = "Berechne Zufallspunkt ...";
 
-  async function findExtremeRandomPoint(event) {
-    event.preventDefault();
+  let baseLat, baseLon;
 
-    if (!navigator.geolocation) {
-      alert("Geolocation wird nicht unterstützt.");
+  // Versuch: automatische Geolokation
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      if (!navigator.geolocation) reject("Geolocation nicht verfügbar.");
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
+    });
+    baseLat = pos.coords.latitude;
+    baseLon = pos.coords.longitude;
+  } catch (err) {
+    // Wenn abgelehnt: Fallback auf manuelle Eingabe
+    if (manualLat !== null && manualLon !== null) {
+      baseLat = manualLat;
+      baseLon = manualLon;
+    } else {
+      infoDiv.textContent = "Kein Standort verfügbar. Bitte manuell eingeben.";
       return;
     }
-
-    const infoDiv = document.getElementById('randomPlaceInfo');
-    infoDiv.innerHTML = "Berechne Zufallspunkt ...";
-
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const baseLat = pos.coords.latitude;
-      const baseLon = pos.coords.longitude;
-      const radiusKm = parseFloat(document.getElementById('radius').value);
-      const numPoints = 500;
-
-      const angles = await getRandomArray(numPoints);
-      const distances = await getRandomArray(numPoints);
-
-      const points = [];
-
-      for (let i = 0; i < numPoints; i++) {
-        const angle = angles[i] * 360;
-        const distance = distances[i] * radiusKm;
-        const dx = distance * Math.cos(angle * Math.PI / 180);
-        const dy = distance * Math.sin(angle * Math.PI / 180);
-        const newLat = baseLat + (dy / 111);
-        const newLon = baseLon + (dx / (111 * Math.cos(baseLat * Math.PI / 180)));
-        points.push({ lat: newLat, lon: newLon });
-      }
-
-      const avgLat = points.reduce((sum, p) => sum + p.lat, 0) / numPoints;
-      const avgLon = points.reduce((sum, p) => sum + p.lon, 0) / numPoints;
-
-      let maxDist = 0;
-      let outlier = null;
-
-      for (const p of points) {
-        const d = haversine(p.lat, p.lon, avgLat, avgLon);
-        if (d > maxDist) {
-          maxDist = d;
-          outlier = p;
-        }
-      }
-
-      if (outlier) {
-        const urlNominatim = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${outlier.lat}&lon=${outlier.lon}`;
-        try {
-          const response = await fetch(urlNominatim, {
-            headers: { 'User-Agent': 'StandortAbfrageScript/1.0' }
-          });
-          const data = await response.json();
-
-          const address = data.address || {};
-          const city = address.city || address.town || address.village || address.hamlet || "Unbekannter Ort";
-          const country = address.country || "Unbekanntes Land";
-
-          infoDiv.innerHTML = `
-            <strong>Zufälliger Punkt gefunden:</strong><br>
-            Ort: ${city}<br>
-            Land: ${country}<br>
-            Koordinaten: ${outlier.lat.toFixed(6)}, ${outlier.lon.toFixed(6)}<br><br>
-            <button id="openMapBtn">Zur Karte öffnen</button>
-          `;
-
-          document.getElementById('openMapBtn').onclick = () => {
-            const googleMapsUrl = `https://www.google.com/maps?q=${outlier.lat},${outlier.lon}`;
-            window.open(googleMapsUrl, '_blank');
-          };
-
-        } catch (error) {
-          infoDiv.textContent = "Fehler beim Laden der Adresse des zufälligen Punktes.";
-        }
-      } else {
-        infoDiv.textContent = "Kein Ausreißer gefunden.";
-      }
-    }, (err) => {
-      alert("Standort konnte nicht ermittelt werden: " + err.message);
-    });
   }
+
+  const radiusKm = parseFloat(document.getElementById('radius').value);
+  const numPoints = 500;
+
+  const angles = await getRandomArray(numPoints);
+  const distances = await getRandomArray(numPoints);
+
+  const points = [];
+
+  for (let i = 0; i < numPoints; i++) {
+    const angle = angles[i] * 360;
+    const distance = distances[i] * radiusKm;
+    const dx = distance * Math.cos(angle * Math.PI / 180);
+    const dy = distance * Math.sin(angle * Math.PI / 180);
+    const newLat = baseLat + (dy / 111);
+    const newLon = baseLon + (dx / (111 * Math.cos(baseLat * Math.PI / 180)));
+    points.push({ lat: newLat, lon: newLon });
+  }
+
+  const avgLat = points.reduce((sum, p) => sum + p.lat, 0) / numPoints;
+  const avgLon = points.reduce((sum, p) => sum + p.lon, 0) / numPoints;
+
+  let maxDist = 0;
+  let outlier = null;
+
+  for (const p of points) {
+    const d = haversine(p.lat, p.lon, avgLat, avgLon);
+    if (d > maxDist) {
+      maxDist = d;
+      outlier = p;
+    }
+  }
+
+  if (outlier) {
+    const urlNominatim = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${outlier.lat}&lon=${outlier.lon}`;
+    try {
+      const response = await fetch(urlNominatim, {
+        headers: { 'User-Agent': 'StandortAbfrageScript/1.0' }
+      });
+      const data = await response.json();
+
+      const address = data.address || {};
+      const city = address.city || address.town || address.village || address.hamlet || "Unbekannter Ort";
+      const country = address.country || "Unbekanntes Land";
+
+      infoDiv.innerHTML = `
+        <strong>Zufälliger Punkt gefunden:</strong><br>
+        Ort: ${city}<br>
+        Land: ${country}<br>
+        Koordinaten: ${outlier.lat.toFixed(6)}, ${outlier.lon.toFixed(6)}<br><br>
+        <button id="openMapBtn">Zur Karte öffnen</button>
+      `;
+
+      document.getElementById('openMapBtn').onclick = () => {
+        const googleMapsUrl = `https://www.google.com/maps?q=${outlier.lat},${outlier.lon}`;
+        window.open(googleMapsUrl, '_blank');
+      };
+
+    } catch (error) {
+      infoDiv.textContent = "Fehler beim Laden der Adresse des zufälligen Punktes.";
+    }
+  } else {
+    infoDiv.textContent = "Kein Ausreißer gefunden.";
+  }
+}
+
 
   async function showLocationInfo() {
     const infoDiv = document.getElementById("info");
@@ -190,6 +202,8 @@
     if (coordMatch) {
       const lat = parseFloat(coordMatch[1]);
       const lon = parseFloat(coordMatch[2]);
+      manualLat = lat;
+      manualLon = lon;
       await fetchLocationInfo(lat, lon);
     } else {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`;
@@ -204,6 +218,8 @@
         }
         const lat = parseFloat(data[0].lat);
         const lon = parseFloat(data[0].lon);
+        manualLat = lat;
+        manualLon = lon;
         await fetchLocationInfo(lat, lon);
       } catch (error) {
         infoDiv.textContent = "Fehler bei der manuellen Standortsuche.";
