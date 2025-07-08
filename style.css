@@ -1,0 +1,57 @@
+body{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url(pexels-aaditya-arora-188236-592753.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+body h2{
+    margin-right: 10px;
+    color: white;
+}
+
+.info{
+    color: white;
+}
+.header{
+    position: fixed;
+    top: 25%;
+    width: 600px;
+    height: 250px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 40px;
+    background-image: linear-gradient(to right, rgba(255,200,0,.4), rgba(255,100,0,.2));
+    backdrop-filter: blur(3px);
+}
+.header a {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    width: 175px;
+    padding: 5px;
+    text-align: center;
+    border-radius: 20px;
+    font-size: large;
+    font-weight: 600;
+    text-decoration: none;
+    color: white;
+    background-color: black;
+}
+
+.header a:hover{
+    background-color: white;
+    color: black;
+}
+.randomPlaceInfo{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 300px;
+    height: 100px;
+    color: white;
+}

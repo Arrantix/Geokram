@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Zufallszahlen</title>
+</head>
+<body onload="showLocationInfo()">
+  <h2>Dein aktueller Standort</h2>
+  <div class="info" id="info">Standort wird ermittelt...</div>
+  <div class="header">
+    <label>
+    Radius (in km): <input type="number" id="radius" value="10" />
+  </label>
+    <a class="map-link" href="#" onclick="findExtremeRandomPoint(event)">Go to a random place</a>
+    <div class="randomPlaceInfo" id="randomPlaceInfo" style="margin-top:1em;"></div>
+  </div>
+
+<script>
+    // Haversine-Formel zur Berechnung von Entfernungen
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Erdradius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(lat1 * Math.PI / 180) *
+                Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // Hole n echte Zufallszahlen von random.org (zwischen -1 und 1)
+async function getRandomArray(n) {
+  const url = `https://www.random.org/decimal-fractions/?num=${n}&dec=8&col=1&format=plain&rnd=new`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("random.org nicht erreichbar");
+    const text = await response.text();
+    const arr = text.trim().split('\n').map(parseFloat);
+    if (arr.length !== n) throw new Error("Unerwartete Anzahl Zufallszahlen");
+    return arr;
+  } catch (error) {
+    console.warn("random.org failed, fallback auf Math.random():", error);
+    // Fallback lokal mit Math.random()
+    return Array.from({length: n}, () => Math.random());
+  }
+}
+
+ async function findExtremeRandomPoint(event) {
+    event.preventDefault(); // Verhindert das Springen der Seite bei Klick auf den Link
+
+    if (!navigator.geolocation) {
+      alert("Geolocation wird nicht unterstützt.");
+      return;
+    }
+
+    const infoDiv = document.getElementById('randomPlaceInfo');
+    infoDiv.innerHTML = "Berechne Zufallspunkt ...";
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const baseLat = pos.coords.latitude;
+      const baseLon = pos.coords.longitude;
+      const radiusKm = parseFloat(document.getElementById('radius').value);
+      const numPoints = 500;
+
+      const angles = await getRandomArray(numPoints);
+      const distances = await getRandomArray(numPoints);
+
+      const points = [];
+
+      for (let i = 0; i < numPoints; i++) {
+        const angle = angles[i] * 360;
+        const distance = distances[i] * radiusKm;
+
+        const dx = distance * Math.cos(angle * Math.PI / 180);
+        const dy = distance * Math.sin(angle * Math.PI / 180);
+
+        const newLat = baseLat + (dy / 111);
+        const newLon = baseLon + (dx / (111 * Math.cos(baseLat * Math.PI / 180)));
+
+        points.push({ lat: newLat, lon: newLon });
+      }
+
+      // Berechne Schwerpunkt
+      const avgLat = points.reduce((sum, p) => sum + p.lat, 0) / numPoints;
+      const avgLon = points.reduce((sum, p) => sum + p.lon, 0) / numPoints;
+
+      // Finde Punkt mit größter Entfernung zum Mittelwert
+      let maxDist = 0;
+      let outlier = null;
+
+      for (const p of points) {
+        const d = haversine(p.lat, p.lon, avgLat, avgLon);
+        if (d > maxDist) {
+          maxDist = d;
+          outlier = p;
+        }
+      }
+
+      if (outlier) {
+        // Reverse Geocoding für den Outlier
+        const urlNominatim = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${outlier.lat}&lon=${outlier.lon}`;
+        try {
+          const response = await fetch(urlNominatim, {
+            headers: { 'User-Agent': 'StandortAbfrageScript/1.0' }
+          });
+          const data = await response.json();
+
+          const address = data.address || {};
+          const city = address.city || address.town || address.village || address.hamlet || "Unbekannter Ort";
+          const country = address.country || "Unbekanntes Land";
+
+          infoDiv.innerHTML = `
+            <strong>Zufälliger Punkt gefunden:</strong><br>
+            Ort: ${city}<br>
+            Land: ${country}<br>
+            Koordinaten: ${outlier.lat.toFixed(6)}, ${outlier.lon.toFixed(6)}<br><br>
+            <button id="openMapBtn">Zur Karte öffnen</button>
+          `;
+
+          document.getElementById('openMapBtn').onclick = () => {
+            const googleMapsUrl = `https://www.google.com/maps?q=${outlier.lat},${outlier.lon}`;
+            window.open(googleMapsUrl, '_blank');
+          };
+
+        } catch (error) {
+          infoDiv.textContent = "Fehler beim Laden der Adresse des zufälligen Punktes.";
+        }
+      } else {
+        infoDiv.textContent = "Kein Ausreißer gefunden.";
+      }
+    }, (err) => {
+      alert("Standort konnte nicht ermittelt werden: " + err.message);
+    });
+  }
+  </script>
+  <script>
+    async function showLocationInfo() {
+      const infoDiv = document.getElementById("info");
+
+      if (!navigator.geolocation) {
+        infoDiv.textContent = "Geolocation wird von deinem Browser nicht unterstützt.";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        // Reverse Geocoding mit Nominatim (OpenStreetMap)
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+        try {
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'StandortAbfrageScript/1.0'
+            }
+          });
+          const data = await response.json();
+
+          const address = data.address || {};
+          const city = address.city || address.town || address.village || address.hamlet || "Unbekannter Ort";
+          const country = address.country || "Unbekanntes Land";
+
+          infoDiv.innerHTML = `
+            <strong>Ort:</strong> ${city}<br>
+            <strong>Land:</strong> ${country}<br>
+            <strong>Koordinaten:</strong> ${lat.toFixed(6)}, ${lon.toFixed(6)}
+          `;
+        } catch (error) {
+          infoDiv.textContent = "Fehler beim Laden der Adresse.";
+        }
+      }, (err) => {
+        infoDiv.textContent = "Fehler beim Ermitteln des Standorts: " + err.message;
+      });
+    }
+  </script>
+</body>
+</html>
