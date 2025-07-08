@@ -107,6 +107,7 @@ body h2{
         padding: 8px;
     }
     .randomPlaceInfo {
+        color: black;
         width: 280px;
         height: 90px;
     }
