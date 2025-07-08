@@ -1,12 +1,5 @@
-html,body {
-    height: 100%
-    margin: 0;
-    padding: 0;
-}
-
 body{
-    min-height: 100vh;
-    background-position: center center;
+    min-height:100vh;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -85,8 +78,6 @@ body h2{
         margin: 20px auto;
     }
     body {
-        background-repeat: no-repeat;
-        background-size: cover;
         flex-direction: column;
         padding: 10px;
     }
@@ -108,10 +99,6 @@ body h2{
 
 /* Tablets */
 @media (min-width: 601px) and (max-width: 900px) {
-    body{
-        background-repeat: no-repeat;
-        background-size: cover;
-    }
     .header {
         position: fixed;
         top: 20%;
@@ -125,7 +112,6 @@ body h2{
         padding: 8px;
     }
     .randomPlaceInfo {
-        color: black;
         width: 280px;
         height: 90px;
     }
@@ -133,10 +119,6 @@ body h2{
 
 /* Kleine Desktops */
 @media (min-width: 901px) and (max-width: 1200px) {
-    body{
-        background-repeat: no-repeat;
-        background-size: cover;
-    }
     .header {
         position: fixed;
         top: 23%;
